@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="USGS Earthquakes visualization using Leaflet"
+      content="USGS Earthquakes visualization using Leaflet"
+    />
+    <meta
+      name="keywords"
+      content="USGS, earthquakes, Leaflet, map, visualization"
+    />
+    <meta name="Edgar Figueira" content="Universidade do Porto" />
+    <meta name="robots" content="index, follow" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <link rel="shortcut icon" href="assets/earthquake.png" type="image/x-icon" />
+
+    <title>USGS Earthquakes - Daily records</title>
+
+    <!-- Leaflet plugin -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!-- Heatmap plugin -->
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+    <!-- Draw plugin -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <!-- Draw plugin stylesheet -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"
+    />
+
+    <script src="dados/falhas/falhas.geojson"></script>
+    <script src="dados/placas_tectonicas/placas.geojson"></script>
+
+    <link rel="stylesheet" href="styles/index.css" />
+  </head>
+  <body>
+    <!-- Div for the map -->
+    <div id="map"></div>
+    <!-- Counter for earthquakes -->
+    <div id="earthquake-count" class="counter">Earthquakes: 0</div>
+    <!-- Button for downloading -->
+    <button class="download-button">Download data</button>
+
+    <script src="js/index.js"></script>
+  </body>
+</html>
