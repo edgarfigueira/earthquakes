@@ -255,7 +255,7 @@ var drawControl = new L.Control.Draw({
   draw: {
     polyline: true,
     polygon: true,
-    circle: true,
+    circle: false,
     rectangle: true,
     marker: true
   }
