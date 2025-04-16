@@ -1,257 +1,239 @@
-// Initialize the map
-const map = L.map("map").setView([21.30985, -29.29688], 2); // Centered on California
+// 1) Inicializar o mapa e camadas base
+const map = L.map("map", { zoomControl: false }).setView([21.30985, -29.29688], 2);
 
-// Base layers
+// Bases (camadas de fundo)
 const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution:
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  attribution: '© OpenStreetMap contributors, USGS Earthquake API | GeoDev: <a href="https://www.linkedin.com/in/edgarfigueira/">Edgar Figueira</a>'
 });
-
 const satellite = L.tileLayer(
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  {
-    attribution: 'Imagery © <a href="https://www.arcgis.com/">Esri</a>'
-  }
-);
-
-const dark_map = L.tileLayer(
+  { attribution: 'Imagery © Esri, USGS Earthquake API | GeoDev: <a href="https://www.linkedin.com/in/edgarfigueira/">Edgar Figueira</a>' }
+);const dark_map = L.tileLayer(
   "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.{ext}",
   {
     minZoom: 0,
     maxZoom: 20,
-    attribution:
-      '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    attribution: '© OpenStreetMap contributors, USGS Earthquake API | GeoDev: <a href="https://www.linkedin.com/in/edgarfigueira/">Edgar Figueira</a>',
     ext: "png"
   }
 );
-
 const OpenTopoMap = L.tileLayer(
   "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
   {
     maxZoom: 17,
-    attribution:
-      'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+    attribution: "© OpenStreetMap contributors, USGS Earthquake API, Edgar Figueira"
   }
 );
 
-// Add OSM as the default basemap
+// Adiciona OSM como base default
 osm.addTo(map);
 
-// Layers control (base maps)
+// BaseMaps e Overlays
 const baseMaps = {
-  OpenStreetMap: osm,
+  "OpenStreetMap": osm,
   "ESRI satellite": satellite,
-  "Stadia Alidade Smooth Dark map": dark_map,
-  OpenTopoMap: OpenTopoMap
+  "Dark Map": dark_map,
+  "OpenTopoMap": OpenTopoMap
 };
 
-// Layers for the earthquake data
-const earthquakeMarkers = L.layerGroup(); // For circle markers
-let heatmapLayer; // Will be defined after data is loaded
-
-// Add the layer control to the map (basemaps + empty overlay for earthquake layers)
+// Overlays
+const earthquakeMarkers = L.layerGroup();
+let heatmapLayer;
+let falhasLayer; // Precisamos disto no slider
 const overlayMaps = {
-  Earthquakes: earthquakeMarkers
+  "Earthquakes": earthquakeMarkers
 };
 
-// Fetch the USGS GeoJSON earthquake data
+// 2) Carregar Earthquakes
 const earthquakeUrl =
   "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson";
 
 fetch(earthquakeUrl)
-  .then((response) => response.json())
-  .then((data) => {
-    const heatData = []; //Array to store the heatmap values
-    const earthquakeCount = data.features.length; // Count the number of earthquakes
+  .then(resp => resp.json())
+  .then(data => {
+    const heatData = [];
+    const quakeCount = data.features.length;
 
-    // Update the counter display
-    document.getElementById(
-      "earthquake-count"
-    ).textContent = `Earthquakes: ${earthquakeCount}`;
+    // Atualiza contador
+    document.getElementById("earthquake-count").textContent =
+      `Earthquakes: ${quakeCount}`;
 
+    // Gera circleMarkers
     L.geoJSON(data, {
-      pointToLayer: function (feature, latlng) {
-        // Style the markers based on magnitude
-        const mag = feature.properties.mag; // Get the magnitude field
-        const radius = mag * 3; // Scale the radius by magnitude
-
-        // Create circle marker
+      pointToLayer: (feature, latlng) => {
+        const mag = feature.properties.mag;
         const marker = L.circleMarker(latlng, {
-          radius: radius,
+          radius: mag * 3,
           fillColor: getColor(mag),
           color: "grey",
           weight: 0.7,
           opacity: 1,
           fillOpacity: 0.6
         });
-
-        // Add click event to zoom to point
-        //marker.on('click', function (e) {
-          //map.setView(e.latlng, 6);
-        //});
-
-        // Bind popup to the circle marker
-        marker.bindPopup(`<strong>Location:</strong> ${
-          feature.properties.place
-        }<br>
-                          <strong>Magnitude:</strong> ${
-                            feature.properties.mag
-                          }<br>
-                          <strong>Time:</strong> ${new Date(
-                            feature.properties.time
-                          ).toLocaleString()}`);
-
-        // Add the marker to the earthquakeMarkers layer
+        marker.on("click", () => {
+          showEarthquakeInfo(feature.properties);
+        });
         earthquakeMarkers.addLayer(marker);
-
-        // Add points to heatmap data (magnitude as weight)
-        heatData.push([latlng.lat, latlng.lng, mag]); // [latitude, longitude, magnitude (weight)]
-
-        return marker; // Return the marker
+        heatData.push([latlng.lat, latlng.lng, mag]);
+        return marker;
       }
-    }).addTo(earthquakeMarkers);
+    });
 
-    // Add the earthquake markers to the map
     earthquakeMarkers.addTo(map);
 
-    // Create heatmap layer (weighted by magnitude)
+    function showEarthquakeInfo(props) {
+      const box = document.getElementById("earthquake-info");
+      box.innerHTML = `
+        <h5 style="margin-top: 0;">Earthquake Details</h5>
+        <p><strong>Location:</strong> ${props.place}</p>
+        <p><strong>Magnitude:</strong> ${props.mag}</p>
+        <p><strong>Time:</strong> ${new Date(props.time).toLocaleString()}</p>
+      `;
+    }
+    
+
+    // Heatmap
     heatmapLayer = L.heatLayer(heatData, {
       radius: 75,
       blur: 45,
       maxZoom: 10,
-      max: 10, // max
+      max: 10,
       gradient: {
-        0.1: "blue", // Cold spots (low intensity)
-        0.3: "cyan", // Medium-low intensity
-        0.5: "yellow", // Medium intensity (close areas)
-        0.7: "orange", // Higher intensity
-        0.9: "red" // High intensity (hotspots)
+        0.1: "blue",
+        0.3: "cyan",
+        0.5: "yellow",
+        0.7: "orange",
+        0.9: "red"
       }
     });
-
-    // Add the heatmap layer as a toggle option in the overlays
     overlayMaps["Heatmap"] = heatmapLayer;
 
-    // Fetch GeoJSON data for polylines and polygons
-    const placasUrl = "dados/placas_tectonicas/placas.geojson"; // Adjust path if necessary
-    const falhasUrl = "dados/falhas/falhas.geojson"; // Adjust path if necessary
+    // Carregar Placas e Falhas
+    const placasUrl = "dados/placas_tectonicas/placas.geojson";
+    const falhasUrl = "dados/falhas/falhas.geojson";
 
-    // Add the layer control after all layers are added
     Promise.all([
-      fetch(placasUrl).then((response) => response.json()),
-      fetch(falhasUrl).then((response) => response.json())
+      fetch(placasUrl).then(r => r.json()),
+      fetch(falhasUrl).then(r => r.json())
     ]).then(([placasData, falhasData]) => {
+      // Placas
       const placasLayer = L.geoJSON(placasData, {
         style: {
           color: "orange",
           weight: 2,
-          fillOpacity: 0.0,
+          fillOpacity: 0,
           dashArray: "2, 12"
         },
-        onEachFeature: function (feature, layer) {
-          // Check if the feature has the "PLATE" property
+        onEachFeature: (feature, layer) => {
           if (feature.properties.PLATE) {
             layer.bindTooltip(feature.properties.PLATE, {
               permanent: false,
               direction: "center",
-              className: "plate-label" // Custom class for styling
+              className: "plate-label"
             });
           }
-          
-          
         }
       });
+      overlayMaps["Tectonic Plates"] = placasLayer;
 
-      const falhasLayer = L.geoJSON(falhasData, {
+      // Falhas
+      falhasLayer = L.geoJSON(falhasData, {
         style: {
           color: "red",
           weight: 2.5
         },
-        onEachFeature: function (feature, layer) {
-          // Check if the feature has both "name" and "slip_type" properties
+        onEachFeature: (feature, layer) => {
           if (feature.properties.name && feature.properties.slip_type) {
             const popupContent = `
-          <strong>Fault Name:</strong> ${feature.properties.name}<br>
-          <strong>Slip Type:</strong> ${feature.properties.slip_type}
-        `;
+              <strong>Fault Name:</strong> ${feature.properties.name}<br>
+              <strong>Slip Type:</strong> ${feature.properties.slip_type}
+            `;
             layer.bindPopup(popupContent);
           }
         }
       });
-
-      overlayMaps["Tectonic Plates"] = placasLayer;
       overlayMaps["Faults"] = falhasLayer;
 
-      L.control.layers(baseMaps, overlayMaps).addTo(map);
+      // Agora criamos controle de camadas e movemos para sidebar
+      createLayerControl();
     });
-    // Add the point and heatmap legends
-    addEarthquakeLegend();
-    addHeatmapLegend();
   });
-//-----------------------------------------------------------------
-// Function to style proportional circles based on earthquake magnitude
-function getColor(magnitude) {
-  return magnitude > 5
+
+// Função cor p/ Earthquakes
+function getColor(mag) {
+  return mag > 5
     ? "#ff0000"
-    : magnitude > 4
+    : mag > 4
     ? "#ff7f00"
-    : magnitude > 3
+    : mag > 3
     ? "#ffff00"
-    : magnitude > 2
+    : mag > 2
     ? "#7fff00"
-    : "#00ff00"; // Low magnitude
+    : "#00ff00";
 }
-//-------------------------------------------------------
-// Function to add proportional earthquake circles legend
-function addEarthquakeLegend() {
-  var legend = L.control({ position: "bottomright" });
-  legend.onAdd = function () {
-    const div = L.DomUtil.create("div", "legend");
-    div.innerHTML += "<strong>Magnitude</strong><br>";
-    div.innerHTML += '<i style="background:#ff0000"></i> 5+<br>';
-    div.innerHTML += '<i style="background:#ff7f00"></i> 4-5<br>';
-    div.innerHTML += '<i style="background:#ffff00"></i> 3-4<br>';
-    div.innerHTML += '<i style="background:#7fff00"></i> 2-3<br>';
-    div.innerHTML += '<i style="background:#00ff00"></i> < 2<br>';
-    return div;
-  };  legend.addTo(map);
+
+// 3) Criar e mover controle de camadas
+function createLayerControl() {
+  const layerControl = L.control.layers(baseMaps, overlayMaps, {
+    collapsed: false
+  });
+  layerControl.addTo(map);
+
+  // Move p/ a sidebar
+  const controlContainer = document.querySelector(".leaflet-control-layers");
+  document.getElementById("sidebar-layers").appendChild(controlContainer);
 }
-//------------------------------------------------
-// Heatmap Legend
-function addHeatmapLegend() {
-  var heatLegend = L.control({ position: "bottomright" });
 
-  heatLegend.onAdd = function () {
-    var div = L.DomUtil.create("div", "legend"),
-      grades = [0.1, 0.3, 0.5, 0.7, 0.9],
-      colors = ["blue", "cyan", "yellow", "orange", "red"],
-      labels = ["Very Low", "Low", "Medium", "High", "Very High"];
-
-    div.innerHTML = "<strong>Heatmap intensity</strong><br>";
-
-    // Loop through the intensity values and generate a label with color for each range
-    for (var i = 0; i < grades.length; i++) {
-      div.innerHTML +=
-        '<i style="background:' + colors[i] + '"></i> ' + labels[i] + "<br>";
-    }
-
-    return div;
-  };
-
-  heatLegend.addTo(map);
+// 4) Legendas na sidebar
+function getEarthquakeLegendHTML() {
+  return `
+    <div class="legend mb-3">
+      <strong>Magnitude</strong><br>
+      <i style="background:#ff0000"></i> 5+<br>
+      <i style="background:#ff7f00"></i> 4-5<br>
+      <i style="background:#ffff00"></i> 3-4<br>
+      <i style="background:#7fff00"></i> 2-3<br>
+      <i style="background:#00ff00"></i> < 2<br>
+    </div>
+  `;
 }
-//--------------------------------------------
-// Add scale to the map
+
+function getHeatmapLegendHTML() {
+  return `
+    <div class="legend mb-3">
+      <strong>Heatmap intensity</strong><br>
+      <i style="background:blue"></i> Very Low<br>
+      <i style="background:cyan"></i> Low<br>
+      <i style="background:yellow"></i> Medium<br>
+      <i style="background:orange"></i> High<br>
+      <i style="background:red"></i> Very High<br>
+    </div>
+  `;
+}
+
+// Insere legendas
+document.getElementById("sidebar-legends").innerHTML =
+  getEarthquakeLegendHTML() + getHeatmapLegendHTML();
+
+// 5) Slider p/ falhas
+const sliderFaults = document.getElementById("faults-opacity");
+sliderFaults.addEventListener("input", e => {
+  const val = parseFloat(e.target.value);
+  if (falhasLayer) {
+    falhasLayer.setStyle({ opacity: val, fillOpacity: val });
+  }
+});
+
+// 6) Leaflet extras
 L.control.scale().addTo(map);
-//--------------------------------------------
-// Initialize the Leaflet Draw Control
-var drawnItems = new L.FeatureGroup();
+
+// Draw Control
+const drawnItems = new L.FeatureGroup();
 map.addLayer(drawnItems);
 
-var drawControl = new L.Control.Draw({
-  edit: {
-    featureGroup: drawnItems
-  },
+const drawControl = new L.Control.Draw({
+  position: 'topleft',
+  edit: { featureGroup: drawnItems },
   draw: {
     polyline: true,
     polygon: true,
@@ -261,16 +243,98 @@ var drawControl = new L.Control.Draw({
   }
 });
 map.addControl(drawControl);
-
-// Handle the event creation of shapes
-map.on(L.Draw.Event.CREATED, function (e) {
-  var layer = e.layer;
-  drawnItems.addLayer(layer);
+map.on(L.Draw.Event.CREATED, e => {
+  drawnItems.addLayer(e.layer);
 });
-//--------------------------------------------
-// Function to download earthquakes features as GeoJSON
+
+// 7) Botão de download (agora dentro da sidebar)
+document.getElementById("download-button").addEventListener("click", () => {
+  window.open(earthquakeUrl, "_blank");
+});
+
+// 8) Sidebar toggle
+document.getElementById("hamburger-button").addEventListener("click", function(){
+  const sidebar = document.getElementById("sidebar");
+  sidebar.classList.toggle("active");
+  // Mudar ícone
+  if (sidebar.classList.contains("active")) {
+    this.innerHTML = "×";
+  } else {
+    this.innerHTML = "☰";
+  }
+});
+
+// 9) Atualizar data/hora
+function updateDateTime() {
+  const now = new Date();
+  document.getElementById("date-time").textContent = now.toLocaleString();
+}
+updateDateTime();
+setInterval(updateDateTime, 1000);
+
+// We'll keep references to the device marker and watch ID
+let deviceMarker = null;
+let geoWatchId = null;
+
+/**
+ * watchPosition callback success:
+ *   - gets coordinates
+ *   - sets/updates deviceMarker on the map
+ *   - optionally re-centers the map
+ */
+function handleGeoSuccess(position) {
+  const lat = position.coords.latitude;
+  const lng = position.coords.longitude;
+
+  if (!deviceMarker) {
+    // Create a new marker if doesn't exist
+    deviceMarker = L.marker([lat, lng], {
+      // optionally use a custom icon or style
+      // icon: L.icon({ ... })
+    }).addTo(map);
+
+    // Optionally pan the map to your location the first time:
+    map.setView([lat, lng], 10); 
+  } else {
+    // Update existing marker location
+    deviceMarker.setLatLng([lat, lng]);
+  }
+}
+
+/**
+ * watchPosition callback error:
+ *   - handle user denying permission or other errors
+ */
+function handleGeoError(err) {
+  console.warn("Geolocation error:", err.message);
+  // optionally display something to the user
+}
+
+/**
+ * Start watching device location
+ */
+function locateMe() {
+  if (!navigator.geolocation) {
+    alert("Geolocation is not supported by this browser.");
+    return;
+  }
+
+  // Start watch if not started
+  if (!geoWatchId) {
+    geoWatchId = navigator.geolocation.watchPosition(
+      handleGeoSuccess,
+      handleGeoError,
+      {
+        enableHighAccuracy: true,
+        timeout: 60000,      // 60s
+        maximumAge: 0
+      }
+    );
+    console.log("Started watchPosition, id = " + geoWatchId);
+  } else {
+    console.log("Already watching position, id = " + geoWatchId);
+  }
+}
 document
-  .querySelector(".download-button")
-  .addEventListener("click", function () {
-    window.open(earthquakeUrl, "_blank");
-  });
+  .getElementById("locate-me-button")
+  .addEventListener("click", locateMe);
