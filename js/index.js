@@ -1,19 +1,28 @@
 // 1) Inicializar o mapa e camadas base
-const map = L.map("map", { zoomControl: false }).setView([21.30985, -29.29688], 2);
+const map = L.map("map", { zoomControl: false }).setView(
+  [21.30985, -29.29688],
+  2
+);
 
 // Bases (camadas de fundo)
 const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: '© OpenStreetMap contributors, USGS Earthquake API | GeoDev: <a href="https://www.linkedin.com/in/edgarfigueira/">Edgar Figueira</a>'
+  attribution:
+    '© OpenStreetMap contributors, USGS Earthquake API | GeoDev: <a href="https://www.linkedin.com/in/edgarfigueira/">Edgar Figueira</a>'
 });
 const satellite = L.tileLayer(
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  { attribution: 'Imagery © Esri, USGS Earthquake API | GeoDev: <a href="https://www.linkedin.com/in/edgarfigueira/">Edgar Figueira</a>' }
-);const dark_map = L.tileLayer(
+  {
+    attribution:
+      'Imagery © Esri, USGS Earthquake API | GeoDev: <a href="https://www.linkedin.com/in/edgarfigueira/">Edgar Figueira</a>'
+  }
+);
+const dark_map = L.tileLayer(
   "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.{ext}",
   {
     minZoom: 0,
     maxZoom: 20,
-    attribution: '© OpenStreetMap contributors, USGS Earthquake API | GeoDev: <a href="https://www.linkedin.com/in/edgarfigueira/">Edgar Figueira</a>',
+    attribution:
+      '© OpenStreetMap contributors, USGS Earthquake API | GeoDev: <a href="https://www.linkedin.com/in/edgarfigueira/">Edgar Figueira</a>',
     ext: "png"
   }
 );
@@ -21,7 +30,8 @@ const OpenTopoMap = L.tileLayer(
   "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
   {
     maxZoom: 17,
-    attribution: "© OpenStreetMap contributors, USGS Earthquake API, Edgar Figueira"
+    attribution:
+      "© OpenStreetMap contributors, USGS Earthquake API, Edgar Figueira"
   }
 );
 
@@ -30,10 +40,10 @@ osm.addTo(map);
 
 // BaseMaps e Overlays
 const baseMaps = {
-  "OpenStreetMap": osm,
+  OpenStreetMap: osm,
   "ESRI satellite": satellite,
   "Dark Map": dark_map,
-  "OpenTopoMap": OpenTopoMap
+  OpenTopoMap: OpenTopoMap
 };
 
 // Overlays
@@ -41,7 +51,7 @@ const earthquakeMarkers = L.layerGroup();
 let heatmapLayer;
 let falhasLayer; // Precisamos disto no slider
 const overlayMaps = {
-  "Earthquakes": earthquakeMarkers
+  Earthquakes: earthquakeMarkers
 };
 
 // 2) Carregar Earthquakes
@@ -49,16 +59,17 @@ const earthquakeUrl =
   "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson";
 
 fetch(earthquakeUrl)
-  .then(resp => resp.json())
-  .then(data => {
+  .then((resp) => resp.json())
+  .then((data) => {
     const heatData = [];
     const quakeCount = data.features.length;
 
     // Atualiza contador
-    document.getElementById("earthquake-count").textContent =
-      `Earthquakes: ${quakeCount}`;
+    document.getElementById(
+      "earthquake-count"
+    ).textContent = `Earthquakes: ${quakeCount}`;
 
-    // Gera circleMarkers
+    // Create circleMarkers
     L.geoJSON(data, {
       pointToLayer: (feature, latlng) => {
         const mag = feature.properties.mag;
@@ -70,14 +81,24 @@ fetch(earthquakeUrl)
           opacity: 1,
           fillOpacity: 0.6
         });
+
+        // When the marker is clicked:
         marker.on("click", () => {
+          // 1) Fill the custom info box
           showEarthquakeInfo(feature.properties);
+
+          // 2) Zoom/fly to the earthquake's location
+          // e.g., map.setView(...) or map.flyTo(...)
+          map.flyTo(latlng, 7); // zoom level 7, adjust as needed
+          // OR:
+          // map.flyTo(latlng, 7);
         });
+
         earthquakeMarkers.addLayer(marker);
         heatData.push([latlng.lat, latlng.lng, mag]);
-        return marker;
+        return marker; // Return the marker
       }
-    });
+    }).addTo(earthquakeMarkers);
 
     earthquakeMarkers.addTo(map);
 
@@ -90,7 +111,6 @@ fetch(earthquakeUrl)
         <p><strong>Time:</strong> ${new Date(props.time).toLocaleString()}</p>
       `;
     }
-    
 
     // Heatmap
     heatmapLayer = L.heatLayer(heatData, {
@@ -113,8 +133,8 @@ fetch(earthquakeUrl)
     const falhasUrl = "dados/falhas/falhas.geojson";
 
     Promise.all([
-      fetch(placasUrl).then(r => r.json()),
-      fetch(falhasUrl).then(r => r.json())
+      fetch(placasUrl).then((r) => r.json()),
+      fetch(falhasUrl).then((r) => r.json())
     ]).then(([placasData, falhasData]) => {
       // Placas
       const placasLayer = L.geoJSON(placasData, {
@@ -217,7 +237,7 @@ document.getElementById("sidebar-legends").innerHTML =
 
 // 5) Slider p/ falhas
 const sliderFaults = document.getElementById("faults-opacity");
-sliderFaults.addEventListener("input", e => {
+sliderFaults.addEventListener("input", (e) => {
   const val = parseFloat(e.target.value);
   if (falhasLayer) {
     falhasLayer.setStyle({ opacity: val, fillOpacity: val });
@@ -232,7 +252,7 @@ const drawnItems = new L.FeatureGroup();
 map.addLayer(drawnItems);
 
 const drawControl = new L.Control.Draw({
-  position: 'topleft',
+  position: "topleft",
   edit: { featureGroup: drawnItems },
   draw: {
     polyline: true,
@@ -243,7 +263,7 @@ const drawControl = new L.Control.Draw({
   }
 });
 map.addControl(drawControl);
-map.on(L.Draw.Event.CREATED, e => {
+map.on(L.Draw.Event.CREATED, (e) => {
   drawnItems.addLayer(e.layer);
 });
 
@@ -253,16 +273,18 @@ document.getElementById("download-button").addEventListener("click", () => {
 });
 
 // 8) Sidebar toggle
-document.getElementById("hamburger-button").addEventListener("click", function(){
-  const sidebar = document.getElementById("sidebar");
-  sidebar.classList.toggle("active");
-  // Mudar ícone
-  if (sidebar.classList.contains("active")) {
-    this.innerHTML = "×";
-  } else {
-    this.innerHTML = "☰";
-  }
-});
+document
+  .getElementById("hamburger-button")
+  .addEventListener("click", function () {
+    const sidebar = document.getElementById("sidebar");
+    sidebar.classList.toggle("active");
+    // Mudar ícone
+    if (sidebar.classList.contains("active")) {
+      this.innerHTML = "×";
+    } else {
+      this.innerHTML = "☰";
+    }
+  });
 
 // 9) Atualizar data/hora
 function updateDateTime() {
@@ -294,7 +316,7 @@ function handleGeoSuccess(position) {
     }).addTo(map);
 
     // Optionally pan the map to your location the first time:
-    map.setView([lat, lng], 10); 
+    map.setView([lat, lng], 10);
   } else {
     // Update existing marker location
     deviceMarker.setLatLng([lat, lng]);
@@ -326,7 +348,7 @@ function locateMe() {
       handleGeoError,
       {
         enableHighAccuracy: true,
-        timeout: 60000,      // 60s
+        timeout: 60000, // 60s
         maximumAge: 0
       }
     );
@@ -335,6 +357,4 @@ function locateMe() {
     console.log("Already watching position, id = " + geoWatchId);
   }
 }
-document
-  .getElementById("locate-me-button")
-  .addEventListener("click", locateMe);
+document.getElementById("locate-me-button").addEventListener("click", locateMe);
