@@ -1,135 +1,94 @@
-body {
-  font-family: Arial, sans-serif;
-}
+/* Bootstrap já fornece estilo base.
+   Aqui, personalizamos a sidebar, mapa e detalhes. */
 
-/* Ensure the map fills the viewport height */
-#map {
-  height: 100vh;
-}
-
-/* Legend styles */
-.legend {
-  background: white;
-  line-height: 1.5em;
-  padding: 10px;
-  font-size: 14px;
-  border-radius: 4px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-}
-
-.legend i {
-  width: 18px;
-  height: 18px;
-  float: left;
-  margin-right: 8px;
-  opacity: 0.8;
-}
-
-/* Counter styles */
-.counter {
+   html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* se não precisa scroll global */
+  }
+  
+  body {
+    font-family: 'Open Sans', sans-serif;
+  }
+  
+  /* Navbar do Bootstrap já está fixed-top e tem ~56px de altura. */
+  
+  /* Sidebar fixo, inicia fora da tela (left: -250px). */
+  #sidebar {
+    position: fixed;
+    top: 56px; /* mesma altura da navbar do Bootstrap */
+    left: -250px;
+    width: 250px;
+    height: calc(100vh - 56px);
+    transition: left 0.3s ease;
+    z-index: 1200;
+    overflow-y: auto; /* scroll interno caso exceda */
+  }
+  
+  /* Sidebar ativa -> desliza para dentro (left: 0). */
+  #sidebar.active {
+    left: 0;
+  }
+  
+  /* Div do mapa ocupa o resto da tela. */
+  #map {
     position: absolute;
-    top: 20px; /* Adjust this value if you need the counter to be further down */
-    left: 20px; /* Align with the left side of the map */
-    background-color: white;
-    padding: 8px 12px;
-    border: 1px solid #ccc;
+    top: 56px; /* abaixo da navbar */
+    left: 0;
+    width: 100%;
+    height: calc(100vh - 56px);
+    
+  }
+  
+  /* Ajuste para o controle de camadas do Leaflet dentro da sidebar */
+  .leaflet-control-layers {
+    margin: 0;
     border-radius: 4px;
+    box-shadow: none;
+    background: none; 
+  }
+  
+  /* Legendas personalizadas */
+  .legend {
+    background: white;
+    line-height: 1.5em;
+    padding: 10px;
     font-size: 14px;
+    border-radius: 4px;
+    margin-bottom: 1rem;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-    z-index: 1000; /* Ensure it stays above other elements */
-    color: #333;
+  }
+  
+  .legend i {
+    width: 18px;
+    height: 18px;
+    float: left;
+    margin-right: 8px;
+    opacity: 0.8;
   }
 
-/* Button to download GeoJSON */
-.download-button {
-  position: absolute;
-  z-index: 1000;
-  background-color: #f8f8f8;
-  color: #262626;
-  padding: 8px 12px;
-  border: 2px solid #9b9b9b4c;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: top 0.3s, left 0.3s;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-}
-
-/* Estilos das camadas */
-.plate-label {
-  font-style: italic; /* Italic font */
-  color: rgb(0, 0, 0); /* Text color */
-  padding: 2px; /* Padding around the text */
-}
-
-/* Default button positioning for medium to large screens */
-@media (min-width: 768px) {
-  .download-button {
-    top: 390px;
-    left: 16px;
+  .info-box {
+    position: absolute;
+    top: 60px; /* a bit below your navbar or top offset */
+    right: 10px;
+    width: 250px; /* adjust as needed */
+    background: white;
+    border: 1px solid #666;
+    border-radius: 0;        /* no curved corners */
+    box-shadow: none;        /* remove box shadow if desired */
+    padding: 10px;
+    z-index: 2000;           /* ensure it’s above the map UI */
+    font-family: sans-serif; /* or match your site’s font */
+    font-size: 14px;
   }
-
-  .counter {
-    top: 340px;
-    font-size: 16px;
-    padding: 10px 16px;
+  
+  
+  /* Responsivo (exemplo) */
+  @media (max-width: 768px) {
+    #sidebar {
+      width: 200px; /* se quiser menor em telas pequenas */
+    }
   }
-}
-
-/* Responsive positioning for small devices (tablets and phones) */
-@media (max-width: 767px) {
-  .download-button {
-    top: auto;
-    bottom: auto;
-    left: 28%;
-    transform: translateX(-50%);
-  }
-
-  .counter {
-    top: 10px;
-    left: 10px;
-    font-size: 12px;
-    padding: 6px 10px;
-  }
-}
-
-/* Additional styling for extra-small devices (320px - 425px) */
-@media (max-width: 426px) {
-  .download-button {
-    top: 77%;
-    font-size: 11px;
-    padding: 6px 10px;
-    left: 70px;
-  }
-
-  .legend {
-    font-size: 12px;
-    padding: 8px;
-  }
-
-  .counter {
-    top: 70%;
-    left: 20px;
-    font-size: 11px;
-    padding: 5px 8px;
-  }
-}
-
-/* Handle very large devices (1440px and up) */
-@media (min-width: 1440px) {
-  .download-button {
-    top: 400px;
-    left: 30px;
-    font-size: 16px;
-    padding: 10px 16px;
-  }
-
-  .legend {
-    font-size: 16px;
-    padding: 12px;
-  }
-
-  .counter {
-    font-size: 18px;
-    padding: 12px 18px;
-  }
-}
+  
