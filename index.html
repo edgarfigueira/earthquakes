@@ -60,7 +60,9 @@
           ☰
         </button>
         <!-- Título -->
-        <span id="daily-title" class="navbar-brand mx-auto"> Registo de sismos do dia: </span>
+        <span id="daily-title" class="navbar-brand mx-auto">
+          Registo de sismos do dia:
+        </span>
         <!-- Info à direita (contador e data/hora) -->
         <div class="d-flex" id="info-right">
           <div id="earthquake-count" class="counter me-3 text-white">
@@ -93,15 +95,6 @@
       <button id="download-button" class="papaya-btn w-100 mt-3">
         Download
       </button>
-
-      <!-- Leaflet-draw toolbar (moved here by JS) --------------------------->
-      <div id="sidebar-draw" class="my-3"></div>
-
-      <!-- Layer-switcher (moved here by JS) --------------------------------->
-      <div id="sidebar-layers" class="my-3"></div>
-
-      <!-- Legends ----------------------------------------------------------->
-      <div id="sidebar-legends" class="my-3"></div>
 
       <!-- Magnitude filter slider ------------------------------------------>
       <label id="mag-p" class="form-label mt-3">
@@ -139,6 +132,18 @@
         UTC&nbsp;23-00&nbsp;h
       </div>
       <!-- ─────────────────────────────────────────────────────────── -->
+
+      <!-- Leaflet-draw toolbar (moved here by JS) --------------------------->
+      <div id="sidebar-draw" class="my-3"></div>
+
+      <!-- Layer-switcher (moved here by JS) --------------------------------->
+      <div id="sidebar-layers" class="my-3"></div>
+
+      <!-- Legends ----------------------------------------------------------->
+      <div id="sidebar-legends" class="my-3"></div>
+
+      
+     
     </div>
 
     <!-- Custom info box for clicked earthquake data -->
