@@ -113,6 +113,13 @@ body {
   pointer-events: auto;    /* restore default behaviour */
 }
 
+/* keep the small controls visually tight */
+#filter-text,
+#filter-mag-min,
+#filter-mag-max{
+  font-size: .85rem;
+}
+
 
 #hour-label {
   color: #f5f5f5; /* your font colour */
