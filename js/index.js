@@ -45,14 +45,7 @@ const playBtn = document.getElementById("play-btn");
 const hourLabel = document.getElementById("hour-label");
 
 /******************** 1. BASEMAPS ***************************/
-const stadia = L.tileLayer(
-  "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.{ext}",
-  {
-    ext: "png",
-    maxZoom: 20,
-    attribution: "© Stadia Maps | © OpenMapTiles | © OSM"
-  }
-);
+
 const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "© OpenStreetMap"
 });
@@ -60,21 +53,16 @@ const esri = L.tileLayer(
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
   { attribution: "Imagery © Esri" }
 );
-const dark = L.tileLayer(
-  "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.{ext}",
-  { ext: "png", attribution: "© OSM contributors" }
-);
+
 const topo = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
   attribution: "© OpenTopoMap"
 });
 
-stadia.addTo(map);
+osm.addTo(map);
 
 const baseMaps = {
-  Stadia: stadia,
   OpenStreetMap: osm,
   "ESRI satellite": esri,
-  "Dark map": dark,
   OpenTopoMap: topo
 };
 
