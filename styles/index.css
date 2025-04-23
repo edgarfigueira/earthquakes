@@ -1,94 +1,183 @@
 /* Bootstrap já fornece estilo base.
    Aqui, personalizamos a sidebar, mapa e detalhes. */
 
-   html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden; /* se não precisa scroll global */
-  }
-  
-  body {
-    font-family: 'Open Sans', sans-serif;
-  }
-  
-  /* Navbar do Bootstrap já está fixed-top e tem ~56px de altura. */
-  
-  /* Sidebar fixo, inicia fora da tela (left: -250px). */
-  #sidebar {
-    position: fixed;
-    top: 56px; /* mesma altura da navbar do Bootstrap */
-    left: -250px;
-    width: 250px;
-    height: calc(100vh - 56px);
-    transition: left 0.3s ease;
-    z-index: 1200;
-    overflow-y: auto; /* scroll interno caso exceda */
-  }
-  
-  /* Sidebar ativa -> desliza para dentro (left: 0). */
-  #sidebar.active {
-    left: 0;
-  }
-  
-  /* Div do mapa ocupa o resto da tela. */
-  #map {
-    position: absolute;
-    top: 56px; /* abaixo da navbar */
-    left: 0;
-    width: 100%;
-    height: calc(100vh - 56px);
-    
-  }
-  
-  /* Ajuste para o controle de camadas do Leaflet dentro da sidebar */
-  .leaflet-control-layers {
-    margin: 0;
-    border-radius: 4px;
-    box-shadow: none;
-    background: none; 
-  }
-  
-  /* Legendas personalizadas */
-  .legend {
-    background: white;
-    line-height: 1.5em;
-    padding: 10px;
-    font-size: 14px;
-    border-radius: 4px;
-    margin-bottom: 1rem;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-  }
-  
-  .legend i {
-    width: 18px;
-    height: 18px;
-    float: left;
-    margin-right: 8px;
-    opacity: 0.8;
-  }
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* se não precisa scroll global */
+}
 
-  .info-box {
-    position: absolute;
-    top: 60px; /* a bit below your navbar or top offset */
-    right: 10px;
-    width: 250px; /* adjust as needed */
-    background: white;
-    border: 1px solid #666;
-    border-radius: 0;        /* no curved corners */
-    box-shadow: none;        /* remove box shadow if desired */
-    padding: 10px;
-    z-index: 2000;           /* ensure it’s above the map UI */
-    font-family: sans-serif; /* or match your site’s font */
-    font-size: 14px;
+body {
+  font-family: "Open Sans", sans-serif;
+}
+
+/* Navbar do Bootstrap já está fixed-top e tem ~56px de altura. */
+
+/* Sidebar fixo, inicia fora da tela (left: -250px). */
+#sidebar {
+  position: fixed;
+  top: 56px; /* mesma altura da navbar do Bootstrap */
+  left: -250px;
+  width: 250px;
+  height: calc(100vh - 56px);
+  transition: left 0.3s ease;
+  z-index: 1200;
+  overflow-y: auto; /* scroll interno caso exceda */
+  color: black;
+}
+
+/* Sidebar ativa -> desliza para dentro (left: 0). */
+#sidebar.active {
+  left: 0;
+}
+
+/* When the draw toolbar is moved inside the sidebar we don’t want it to
+   keep the absolute positioning Leaflet gives it by default. */
+#sidebar .leaflet-draw {
+  position: static; /* lose absolute/fixed coordinates   */
+  width: 100%; /* make buttons stretch if you like   */
+  margin: 0 0 1rem 0; /* a little breathing room            */
+  box-shadow: none;
+}
+
+#sidebar .leaflet-draw a {
+  float: none; /* stack icons vertically             */
+  display: block;
+  margin: 4px 0;
+  box-shadow: none;
+}
+
+/* Div do mapa ocupa o resto da tela. */
+#map {
+  position: absolute;
+  top: 56px; /* abaixo da navbar */
+  left: 0;
+  width: 100%;
+  height: calc(100vh - 56px);
+}
+
+/* Ajuste para o controle de camadas do Leaflet dentro da sidebar */
+.leaflet-control-layers {
+  margin: 0;
+  border-radius: 4px;
+  box-shadow: none;
+  background: none;
+}
+
+/* Legendas personalizadas */
+.legend {
+  background: rgb(255, 255, 255);
+  line-height: 1.5em;
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.legend i {
+  width: 18px;
+  height: 18px;
+  float: left;
+  margin-right: 8px;
+  opacity: 0.8;
+}
+
+/* short horizontal slider that sits after each layer label */
+.opacity-slider {
+  width: 80px; /* fits in the sidebar line */
+  margin-left: 0.5rem; /* small gap after the text */
+  vertical-align: middle;
+}
+
+.info-box {
+  position: absolute;
+  top: 60px; /* a bit below your navbar or top offset */
+  right: 10px;
+  width: 250px; /* adjust as needed */
+  background: white;
+  border: 1px solid #000000;
+  border-radius: 0; /* no curved corners */
+  box-shadow: none; /* remove box shadow if desired */
+  padding: 10px;
+  z-index: 2500; /* ensure it’s above the map UI */
+  font-family: sans-serif; /* or match your site’s font */
+  font-size: 14px;
+  pointer-events: none;
+}
+
+/* allow clicks only on the anchor(s) inside the info-box */
+.info-box a{
+  pointer-events: auto;    /* restore default behaviour */
+}
+
+
+#hour-label {
+  color: #f5f5f5; /* your font colour */
+  letter-spacing: 0.3px;
+}
+
+/* orange text + subtle halo so it’s readable on any basemap */
+.impact-label {
+  color: #f5f5f5;
+  font-weight: 600;
+  text-shadow: 0 0 3px #000;
+  pointer-events: none; /* label itself not clickable   */
+  user-select: none;
+  position: relative;
+  top: -6px;
+  white-space: nowrap;
+}
+
+/* colour & thumb to match your orange theme ---------------------------- */
+.noUi-connect      { background:#FF8000; }
+.noUi-horizontal .noUi-handle{
+  width:14px;height:14px;border-radius:50%;top:-6px;
+  background:#FF8000;border:none;box-shadow:0 0 3px #0006;
+}
+
+
+/* Responsivo (exemplo) */
+@media (max-width: 768px) {
+  #sidebar {
+    width: 200px; /* se quiser menor em telas pequenas */
   }
-  
-  
-  /* Responsivo (exemplo) */
-  @media (max-width: 768px) {
-    #sidebar {
-      width: 200px; /* se quiser menor em telas pequenas */
-    }
-  }
-  
+}
+
+/*────────────────  PAPAYA BUTTON  ───────────────*/
+.papaya-btn {
+  --papaya: #ff8000;
+  --papaya-dark: #e46f00; /* hover / active */
+  background: var(--papaya);
+  color: #000 !important; /* high contrast on orange */
+  border: none;
+  font-weight: 600;
+  border-radius: 40px;
+  transition: background 0.15s, transform 0.15s;
+  box-shadow: 0 2px 4px #0003;
+}
+.papaya-btn:hover {
+  background: var(--papaya-dark);
+}
+.papaya-btn:active {
+  background: var(--papaya-dark);
+  transform: scale(0.97);
+}
+.papaya-btn.disabled,
+.papaya-btn:disabled {
+  background: var(--papaya);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* “active” state we toggle for Locate‑Me (darker & inverted text) */
+.papaya-btn.active {
+  background: var(--papaya-dark);
+  color: #fff !important;
+}
+
+#mag-p {
+  color: white;
+}
