@@ -154,6 +154,13 @@ fetch(feedURL)
       overlayMaps["Falhas Geológicas"] = falhasLayer;
       createLayerControl();
     });
+    
+
+    /* 6. Core routine – show / hide markers ------------------- */
+   
+    
+    /* first run ------------------------------------------------*/
+    
   });
 
 /******************** 4. HIGHLIGHT & IMPACT *****************/
