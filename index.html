@@ -21,7 +21,7 @@
       type="image/x-icon"
     />
 
-    <title>USGS Earthquakes - Daily records</title>
+    <title>Sismos USGS - Registos diários passados</title>
 
     <!-- Bootstrap CSS -->
     <link
@@ -42,6 +42,12 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"
     />
 
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/nouislider@15/dist/nouislider.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/nouislider@15/dist/nouislider.min.js"></script>
+
     <!-- Seu CSS personalizado -->
     <link rel="stylesheet" href="styles/index.css" />
   </head>
@@ -54,55 +60,91 @@
           ☰
         </button>
         <!-- Título -->
-        <span class="navbar-brand mx-auto"> World Earthquakes </span>
+        <span id="daily-title" class="navbar-brand mx-auto"> Registo de sismos do dia: </span>
         <!-- Info à direita (contador e data/hora) -->
         <div class="d-flex" id="info-right">
           <div id="earthquake-count" class="counter me-3 text-white">
-            Earthquakes: 0
+            Sismos: 0
           </div>
           <div id="date-time" class="date-time text-white">Data e Hora</div>
         </div>
       </div>
     </nav>
 
-    <!-- Sidebar (oculta/mostra via CSS) -->
+    <!-- Sidebar (show / hide through CSS + hamburger) -->
     <div id="sidebar" class="bg-secondary p-3">
-      <!-- New geolocation button -->
-      <button id="locate-me-button" class="btn btn-success w-100 mt-3">
-        Locate Me
+      <!-- Locate-me ---------------------------------------------------------->
+      <button id="locate-me-button" class="papaya-btn w-100 mt-3">
+        Geolocalização
       </button>
-      
 
-      <!-- Container para o controle de camadas (Leaflet Layers) -->
+      <!-- Upload GeoJSON / KML --------------------------------------------->
+      <button id="upload-button" class="papaya-btn w-100 mt-3">
+        Carregar ficheiro
+      </button>
+      <input
+        id="file-input"
+        type="file"
+        accept=".geojson,.json,.kml,application/geo+json,application/vnd.google-earth.kml+xml"
+        hidden
+      />
+
+      <!-- Download current USGS feed --------------------------------------->
+      <button id="download-button" class="papaya-btn w-100 mt-3">
+        Download
+      </button>
+
+      <!-- Leaflet-draw toolbar (moved here by JS) --------------------------->
+      <div id="sidebar-draw" class="my-3"></div>
+
+      <!-- Layer-switcher (moved here by JS) --------------------------------->
       <div id="sidebar-layers" class="my-3"></div>
 
-      <!-- Container para as legendas -->
+      <!-- Legends ----------------------------------------------------------->
       <div id="sidebar-legends" class="my-3"></div>
 
-      <!-- Exemplo de slider para ajustar opacidade de uma camada (ex: falhas) -->
-      <div id="sliders" class="my-3">
-        <label for="faults-opacity" class="form-label"> Faults Opacity </label>
+      <!-- Magnitude filter slider ------------------------------------------>
+      <label id="mag-p" class="form-label mt-3">
+        Magnitude ≥ <span id="mag-val">0</span>
+      </label>
+      <input
+        id="mag-slider"
+        type="range"
+        class="form-range"
+        min="0"
+        max="6"
+        step="0.5"
+        value="0"
+      />
+
+      <!-- ── hour-filter + PLAY button ────────────────────────────── -->
+      <div class="d-flex align-items-center mt-3">
+        <button id="play-btn" class="papaya-btn me-2 px-3" style="width: 55px">
+          ▶
+        </button>
+
+        <!-- plain range slider: 0 … 23 -->
         <input
+          id="time-slider"
           type="range"
-          class="form-range"
-          id="faults-opacity"
+          class="form-range flex-fill"
           min="0"
-          max="1"
-          step="0.1"
-          value="1"
+          max="23"
+          step="1"
+          value="23"
         />
       </div>
-      <!-- Botão de download dentro da sidebar -->
-      <div class="my-3">
-        <button id="download-button" class="btn btn-primary w-100">
-          Download data
-        </button>
+
+      <div id="hour-label" class="text-center small text-light mt-1">
+        UTC&nbsp;23-00&nbsp;h
       </div>
+      <!-- ─────────────────────────────────────────────────────────── -->
     </div>
+
     <!-- Custom info box for clicked earthquake data -->
     <div id="earthquake-info" class="info-box">
       <!-- Will be populated dynamically -->
-      <p>Click on an earthquake marker to see its details.</p>
+      <p>Clique num marcador para ver os detalhes sobre o seu registo.</p>
     </div>
 
     <!-- Container principal do mapa -->
@@ -119,6 +161,9 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+    <!-- togeojson - converts KML strings to GeoJSON objects -->
+    <script src="https://unpkg.com/@tmcw/togeojson@5/dist/togeojson.umd.js"></script>
 
     <!-- Google Tag Manager (opcional) -->
     <script
