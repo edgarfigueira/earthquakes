@@ -191,9 +191,9 @@ fetch(feedURL)
       }
     });
 
-    filterByHour(+timeSlider.value);
     buildMagCheckboxes(data.features);
-
+    filterByHour(+timeSlider.value);
+    
 
     heatmapLayer = L.heatLayer(heatPts, {
       radius: 75,
@@ -286,6 +286,7 @@ function highlight(marker) {
 
 /******************** 5. TIME FILTER & ANIMATION ***********/
 function filterByHour(h) {
+  currentHour = h;
   if (hourLabel)
     hourLabel.textContent = `Hora UTC: ${h.toString().padStart(2, "0")}-${(
       (h + 1) %
@@ -302,6 +303,7 @@ function filterByHour(h) {
       fillOpacity: show ? VISIBLE_FILL : 0 // ← always restore the real value
     });
   });
+  earthquakeMarkers.eachLayer(updateMarkerVisibility);
 }
 
 /* plain <input type="range"> slider (simpler to debug) */
@@ -566,8 +568,9 @@ function handleFileSelect(e) {
     createLayerControl(); // reconstrói o controlo de camadas
     map.fitBounds(lyr.getBounds());
     buildMagCheckboxes(geojson.features);
+    filterByHour(currentHour);   // volta a aplicar filtros com as novas classes
+
   };
-  
 
   reader.readAsText(file);
 }
