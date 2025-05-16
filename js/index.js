@@ -37,8 +37,22 @@ let heatmapLayer, // Leaflet-heat layer
   activeMarker, // currently highlighted quake marker
   impactRing,
   impactLine,
-  impactLabel; // graphics around a quake
+  impactLabel, // graphics around a quake
+  layerCtrl;
+
 const VISIBLE_FILL = 0.6; // the default fillOpacity we want when a quake is visible
+
+function createLayerControl() {
+  if (layerCtrl) map.removeControl(layerCtrl); // apaga o anterior
+  layerCtrl = L.control
+    .layers(baseMaps, overlayMaps, { collapsed: false })
+    .addTo(map);
+
+  const sidebar = document.getElementById("sidebar-layers");
+  sidebar.innerHTML = ""; // limpa conteúdo anterior
+  sidebar.appendChild(layerCtrl.getContainer());
+  addOpacitySliders(layerCtrl.getContainer());
+}
 
 const timeSlider = document.getElementById("time-slider");
 const playBtn = document.getElementById("play-btn");
@@ -73,6 +87,74 @@ const HIGHLIGHT = { color: "#4BFFFF", weight: 3, opacity: 1, fillOpacity: 0.8 },
 /******************** 3. FETCH EARTHQUAKES *****************/
 const earthquakeMarkers = L.layerGroup().addTo(map);
 const overlayMaps = { Earthquakes: earthquakeMarkers };
+
+/******************** MAGNITUDE FILTER (checkboxes) *******************/
+let activeMagClasses = new Set(); // classes actualmente visíveis  (0-1, 1-2 …)
+let currentHour = 23; // hora activa do time-slider
+
+/* devolve o inteiro da classe (0-1 ⇒ 0, 1-2 ⇒ 1 …)  */
+function getMagClass(m) {
+  return Math.max(0, Math.floor(m)); // <0 ⇒ classe 0
+}
+
+/* cria as checkboxes consoante as magnitudes presentes */
+function buildMagCheckboxes(features) {
+  const maxMag = Math.ceil(Math.max(...features.map((f) => f.properties.mag)));
+  const cont = document.getElementById("mag-checkboxes");
+  cont.innerHTML = ""; // limpa anteriores
+
+  for (let c = 0; c <= maxMag; c++) {
+    const id = `magcls-${c}`;
+    const wrapper = document.createElement("div");
+    wrapper.className = "form-check";
+
+    const cb = Object.assign(document.createElement("input"), {
+      type: "checkbox",
+      className: "form-check-input",
+      id,
+      value: c,
+      checked: true
+    });
+    cb.addEventListener("change", applyMagFilter);
+
+    const label = Object.assign(document.createElement("label"), {
+      className: "form-check-label",
+      htmlFor: id,
+      textContent: c === maxMag ? `${c}+` : `${c}-${c + 1}`
+    });
+
+    wrapper.append(cb, label);
+    cont.appendChild(wrapper);
+  }
+  // todas activas por defeito
+  activeMagClasses = new Set(Array.from({ length: maxMag + 1 }, (_, k) => k));
+}
+
+/* recalcula set de classes activas e actualiza marcadores */
+function applyMagFilter() {
+  activeMagClasses = new Set(
+    Array.from(
+      document.querySelectorAll("#mag-checkboxes input:checked"),
+      (cb) => +cb.value
+    )
+  );
+  earthquakeMarkers.eachLayer(updateMarkerVisibility);
+}
+
+/* decide visibilidade de cada marcador (hora + magnitude) */
+function updateMarkerVisibility(marker) {
+  const hr = new Date(marker.feature.properties.time).getUTCHours();
+  const cls = getMagClass(marker.feature.properties.mag);
+
+  const visible =
+    marker === activeMarker || // permanece realçado
+    (hr <= currentHour && activeMagClasses.has(cls));
+
+  marker.setStyle({
+    opacity: visible ? 1 : 0,
+    fillOpacity: visible ? VISIBLE_FILL : 0
+  });
+}
 
 const feedURL =
   "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson";
@@ -110,6 +192,8 @@ fetch(feedURL)
     });
 
     filterByHour(+timeSlider.value);
+    buildMagCheckboxes(data.features);
+
 
     heatmapLayer = L.heatLayer(heatPts, {
       radius: 75,
@@ -154,13 +238,10 @@ fetch(feedURL)
       overlayMaps["Falhas Geológicas"] = falhasLayer;
       createLayerControl();
     });
-    
 
     /* 6. Core routine – show / hide markers ------------------- */
-   
-    
+
     /* first run ------------------------------------------------*/
-    
   });
 
 /******************** 4. HIGHLIGHT & IMPACT *****************/
@@ -212,6 +293,7 @@ function filterByHour(h) {
     )
       .toString()
       .padStart(2, "0")} h`;
+  earthquakeMarkers.eachLayer(updateMarkerVisibility);
   earthquakeMarkers.eachLayer((marker) => {
     const hr = new Date(marker.feature.properties.time).getUTCHours();
     const show = marker === activeMarker || hr <= h;
@@ -315,21 +397,6 @@ function buildLegends() {
       <i style="background:red"></i> Muito Alta
     </div>`;
 }
-
-/******************** 9. MAGNITUDE FILTER ******************/
-const magSlider = document.getElementById("mag-slider");
-const magVal = document.getElementById("mag-val");
-magSlider.addEventListener("input", (e) => {
-  const minMag = +e.target.value;
-  magVal.textContent = minMag;
-  earthquakeMarkers.eachLayer((m) => {
-    const mag = m.feature.properties.mag;
-    m.setStyle({
-      opacity: mag >= minMag ? 1 : 0,
-      fillOpacity: mag >= minMag ? 0.6 : 0
-    });
-  });
-});
 
 /******************** 10. GEO-LOCATE ***********************/
 const locateBtn = document.getElementById("locate-me-button");
@@ -456,6 +523,54 @@ dlBtn.addEventListener("click", () => {
   a.remove();
   URL.revokeObjectURL(url);
 });
+
+/******************** 11-BIS. UPLOAD GEOJSON / KML *******************/
+const uploadBtn = document.getElementById("upload-button");
+const fileInput = document.getElementById("file-input");
+
+uploadBtn.addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", handleFileSelect);
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const isKml = /\.kml$/i.test(file.name);
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    let geojson;
+    try {
+      if (isKml) {
+        /* converte KML → GeoJSON (biblioteca togeojson já incluída no HTML) */
+        const dom = new DOMParser().parseFromString(
+          evt.target.result,
+          "text/xml"
+        );
+        geojson = toGeoJSON.kml(dom);
+      } else {
+        geojson = JSON.parse(evt.target.result);
+      }
+    } catch (err) {
+      alert("Ficheiro inválido ou não suportado.");
+      return;
+    }
+
+    /* cria camada Leaflet */
+    const lyr = L.geoJSON(geojson, {
+      style: NORMAL,
+      pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 6, ...NORMAL })
+    }).addTo(map);
+
+    const name = file.name.replace(/\.[^.]+$/, "");
+    overlayMaps[name] = lyr; // torna-o seleccionável no painel
+    createLayerControl(); // reconstrói o controlo de camadas
+    map.fitBounds(lyr.getBounds());
+    buildMagCheckboxes(geojson.features);
+  };
+  
+
+  reader.readAsText(file);
+}
 
 /******************** 12. SIDEBAR TOGGLE *******************/
 document
